@@ -1,0 +1,14 @@
+2026-01-09 17:18:49,770 - INFO - Starting Dark Web Monitor...
+2026-01-09 17:18:49,770 - INFO - Validating URLs before scanning...
+2026-01-09 17:18:49,770 - INFO - Probing: http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/search/?q=myemail@example.com
+2026-01-09 17:18:51,787 - ERROR - Connection Failed: http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/search/?q=myemail@example.com
+2026-01-09 17:18:51,788 - WARNING - Invalid syntax: http://invalid-link-for-test.onion
+2026-01-09 17:18:51,788 - INFO - Validation complete. 0/2 sites are active.
+2026-01-09 17:18:51,788 - INFO - No matches found.
+2026-01-09 20:49:11,866 - INFO - Starting Dark Web Monitor...
+2026-01-09 20:49:11,867 - INFO - Validating URLs before scanning...
+2026-01-09 20:49:11,867 - INFO - Probing: http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/search/?q=myemail@example.com
+2026-01-09 20:49:13,872 - ERROR - Connection Failed: http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/search/?q=myemail@example.com
+2026-01-09 20:49:13,873 - WARNING - Invalid syntax: http://invalid-link-for-test.onion
+2026-01-09 20:49:13,873 - INFO - Validation complete. 0/2 sites are active.
+2026-01-09 20:49:13,873 - INFO - No matches found.
