@@ -1,0 +1,7 @@
+.venv
+onion_validator.log
+spider.log
+strategy.ipynb
+challenges.ipynb
+__pycache__/
+*.pyc
