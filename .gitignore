@@ -6,3 +6,6 @@ challenges.ipynb
 __pycache__/
 *.pyc
 goals.ipynb
+*.db
+quarantine
+temp_code.py

@@ -10,13 +10,15 @@ from requests.exceptions import RequestException
 from typing import List, Optional, Dict
 import time
 import logging
+import sqlite3
+import os
+from stem import Signal
+from stem.control import Controller
 
 # Ensure we can import the validator from the same directory
 try:
     from link_validator import OnionValidator
 except ImportError:
-    # If running directly or in a different context, this might fail without path setup.
-    # For now, we assume same directory availability.
     logging.error("Could not import OnionValidator. Ensure link_validator.py is in the same directory.")
     OnionValidator = None
 
@@ -29,50 +31,61 @@ logging.basicConfig(
     ]
 )
 
+def rotate_tor_identity(control_port=9051, password=None):
+    """
+    Signals Tor to switch to a new circuit (new IP).
+    """
+    try:
+        with Controller.from_port(port=control_port) as controller:
+            if password:
+                controller.authenticate(password=password)
+            else:
+                controller.authenticate()  # Cookie authentication
+            controller.signal(Signal.NEWNYM)
+            logging.info("[*] Tor identity rotated. New circuit established.")
+            time.sleep(controller.get_newnym_wait()) # Wait for the new circuit
+    except Exception as e:
+        logging.warning(f"[!] Failed to rotate Tor identity: {e}")
+
 class DarkWebMonitor:
     """
     Monitors dark web onion sites for specific keywords.
-    
-    Attributes:
-        session (requests.Session): Request session with Tor proxy configuration.
     """
     
     def __init__(self, tor_proxy: str = "socks5h://127.0.0.1:9050"):
-        """
-        Initialize the DarkWebMonitor.
-        
-        Args:
-            tor_proxy (str): The Tor SOCKS5 proxy URL.
-        """
-        # Use a Session for connection pooling and cookie persistence
         self.session = requests.Session()
         self.session.proxies = {
             'http': tor_proxy,
             'https': tor_proxy
         }
-        # Identifying as a standard browser helps avoid some basic blocks
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:102.0) Gecko/20100101 Firefox/102.0'
         })
         self.validator = OnionValidator(proxy_url=tor_proxy) if OnionValidator else None
+        
+        # Ensure quarantine directory exists
+        self.quarantine_dir = "quarantine"
+        if not os.path.exists(self.quarantine_dir):
+            os.makedirs(self.quarantine_dir)
 
     def fetch_page(self, url: str) -> Optional[str]:
         """
-        Attempts to fetch a .onion page with high tolerance for failure.
-        Onions are slow; we need generous timeouts.
-        
-        Args:
-            url (str): The URL to fetch.
-            
-        Returns:
-            Optional[str]: The HTML content if successful, None otherwise.
+        Attempts to fetch a .onion page. Handles file downloads for .zip/.sql.
         """
         try:
             logging.info(f"[*] Attempting to fetch: {url}")
-            # 30 second timeout is standard for Tor latency
             response = self.session.get(url, timeout=30)
             
             if response.status_code == 200:
+                # Check for interesting files
+                content_type = response.headers.get('Content-Type', '')
+                if 'application/zip' in content_type or 'application/sql' in content_type or url.endswith(('.zip', '.sql')):
+                    filename = os.path.join(self.quarantine_dir, os.path.basename(url) or "download.file")
+                    with open(filename, 'wb') as f:
+                        f.write(response.content)
+                    logging.info(f"[+] Downloaded extraction to {filename}")
+                    return None # return None so we don't parse binary as text
+                
                 return response.text
             else:
                 logging.warning(f"[!] Failed with status: {response.status_code}")
@@ -83,27 +96,14 @@ class DarkWebMonitor:
             return None
 
     def scan_for_keywords(self, urls: List[str], keywords: List[str]) -> Dict[str, List[str]]:
-        """
-        Iterates through a list of onion URLs and checks for keywords.
-        First validates the URLs to avoid wasting time on dead links.
-        
-        Args:
-            urls (List[str]): List of .onion URLs to scan.
-            keywords (List[str]): List of keywords to search for.
-            
-        Returns:
-            Dict[str, List[str]]: Dictionary mapping URLs to list of found keywords.
-        """
         results = {}
         
-        # Step 1: Validate Links (if validator is available)
+        # Simple validation for the base class
         valid_urls = urls
         if self.validator:
             logging.info("Validating URLs before scanning...")
             valid_urls = self.validator.filter_batch(urls)
-            logging.info(f"Validation complete. {len(valid_urls)}/{len(urls)} sites are active.")
         
-        # Step 2: Scan Active Links
         for url in valid_urls:
             html_content = self.fetch_page(url)
             
@@ -113,29 +113,107 @@ class DarkWebMonitor:
                     logging.info(f"[!!!] MATCH FOUND on {url}: {found}")
                     results[url] = found
             
-            # Respect the network: delay between requests to avoid circuit overload
-            time.sleep(2) 
+            time.sleep(2)
             
         return results
 
+class PersistentDarkWebMonitor(DarkWebMonitor):
+    def __init__(self, db_path="dark_spider.db", **kwargs):
+        super().__init__(**kwargs)
+        self.db_path = db_path
+        self._init_db()
+
+    def _init_db(self):
+        """Initialize tables for links and findings."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS matches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    url TEXT,
+                    keyword TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS seed_list (
+                    url TEXT PRIMARY KEY,
+                    last_checked DATETIME,
+                    failure_count INTEGER DEFAULT 0,
+                    is_active BOOLEAN
+                )
+            """)
+
+    def save_match(self, url: str, keywords: List[str]):
+        """Log findings to the database."""
+        data = [(url, k) for k in keywords]
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany("INSERT INTO matches (url, keyword) VALUES (?, ?)", data)
+
+    def update_seed_status(self, url: str, success: bool):
+        """Updates failure count or resets it on success."""
+        with sqlite3.connect(self.db_path) as conn:
+            if success:
+                conn.execute("UPDATE seed_list SET failure_count = 0, last_checked = CURRENT_TIMESTAMP, is_active = 1 WHERE url = ?", (url,))
+            else:
+                conn.execute("UPDATE seed_list SET failure_count = failure_count + 1, last_checked = CURRENT_TIMESTAMP WHERE url = ?", (url,))
+                # 3-Strikes Rule
+                conn.execute("DELETE FROM seed_list WHERE failure_count >= 3")
+
+    def add_seeds(self, urls: List[str]):
+        """Adds new seeds to the database."""
+        with sqlite3.connect(self.db_path) as conn:
+            for url in urls:
+                conn.execute("INSERT OR IGNORE INTO seed_list (url, is_active) VALUES (?, 1)", (url,))
+
+    def run_automated_scan(self, keywords: List[str]):
+        """Main loop: fetches seeds from DB, scans, updates status."""
+        
+        # 1. Fetch seeds from DB
+        with sqlite3.connect(self.db_path) as conn:
+            seeds = [row[0] for row in conn.execute("SELECT url FROM seed_list WHERE is_active = 1")]
+
+        if not seeds:
+            logging.info("No active seeds in database.")
+            return
+
+        logging.info(f"Starting scan on {len(seeds)} seeds...")
+        
+        # 2. Key difference: We iterate manually to update DB status per URL
+        for url in seeds:
+            # Rotate identity occasionally (e.g. every 10 sites or on errors - keeping it simple here)
+            # rotate_tor_identity() 
+            
+            html_content = self.fetch_page(url)
+            
+            if html_content:
+                # Success
+                self.update_seed_status(url, True)
+                found = [k for k in keywords if k.lower() in html_content.lower()]
+                if found:
+                    logging.info(f"[!!!] MATCH FOUND on {url}: {found}")
+                    self.save_match(url, found)
+            else:
+                # Failure (connection error or 404 handled in fetch_page return None)
+                self.update_seed_status(url, False)
+            
+            time.sleep(2)
+
+        logging.info("Scan complete.")
+
 if __name__ == "__main__":
-    # Example: A list of known paste sites or search engine queries
-    # Note: These must be valid .onion addresses
+    # Example Usage
     target_onions = [
-        "http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/search/?q=myemail@example.com", # Example: Ahmia Search Query
+        "http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/search/?q=myemail@example.com",
         "http://invalid-link-for-test.onion"
     ]
     
-    # Define keywords to search for
     search_keywords = ["myemail@example.com", "My Name", "Password"]
 
-    monitor = DarkWebMonitor()
-    logging.info("Starting Dark Web Monitor...")
-    matches = monitor.scan_for_keywords(target_onions, search_keywords)
+    monitor = PersistentDarkWebMonitor()
+    logging.info("Initializing Persistent Monitor...")
     
-    if matches:
-        logging.info("\nSummary of Findings:")
-        for url, items in matches.items():
-            logging.info(f" - {url}: {items}")
-    else:
-        logging.info("No matches found.")
+    # Pre-populate DB for the example
+    monitor.add_seeds(target_onions)
+    
+    # Run the scan
+    monitor.run_automated_scan(search_keywords)
