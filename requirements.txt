@@ -2,3 +2,5 @@ requests
 pysocks
 fake-useragent
 stem
+pandas
+beautifulsoup4

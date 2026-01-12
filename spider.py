@@ -12,8 +12,11 @@ import time
 import logging
 import sqlite3
 import os
+import sys
 from stem import Signal
 from stem.control import Controller
+import config
+from tor_manager import start_tor_service
 
 # Ensure we can import the validator from the same directory
 try:
@@ -52,19 +55,17 @@ class DarkWebMonitor:
     Monitors dark web onion sites for specific keywords.
     """
     
-    def __init__(self, tor_proxy: str = "socks5h://127.0.0.1:9050"):
+    def __init__(self):
         self.session = requests.Session()
         self.session.proxies = {
-            'http': tor_proxy,
-            'https': tor_proxy
+            'http': config.TOR_PROXY,
+            'https': config.TOR_PROXY
         }
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:102.0) Gecko/20100101 Firefox/102.0'
-        })
-        self.validator = OnionValidator(proxy_url=tor_proxy) if OnionValidator else None
+        self.session.headers.update(config.HEADERS)
+        self.validator = OnionValidator(proxy_url=config.TOR_PROXY) if OnionValidator else None
         
         # Ensure quarantine directory exists
-        self.quarantine_dir = "quarantine"
+        self.quarantine_dir = config.QUARANTINE_DIR
         if not os.path.exists(self.quarantine_dir):
             os.makedirs(self.quarantine_dir)
 
@@ -118,7 +119,7 @@ class DarkWebMonitor:
         return results
 
 class PersistentDarkWebMonitor(DarkWebMonitor):
-    def __init__(self, db_path="dark_spider.db", **kwargs):
+    def __init__(self, db_path=config.DB_PATH, **kwargs):
         super().__init__(**kwargs)
         self.db_path = db_path
         self._init_db()
@@ -201,6 +202,9 @@ class PersistentDarkWebMonitor(DarkWebMonitor):
         logging.info("Scan complete.")
 
 if __name__ == "__main__":
+    if not start_tor_service():
+        sys.exit(1)
+        
     # Example Usage
     target_onions = [
         "http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion/search/?q=myemail@example.com",

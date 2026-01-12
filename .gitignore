@@ -1,6 +1,7 @@
 .venv
 onion_validator.log
 spider.log
+*.log
 strategy.ipynb
 challenges.ipynb
 __pycache__/
@@ -9,3 +10,6 @@ goals.ipynb
 *.db
 quarantine
 temp_code.py
+config.py
+tor_quick_check.py
+*.ipynb
