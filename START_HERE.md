@@ -9,10 +9,12 @@ Get from zero to your first dark web scan in under 5 minutes.
 | What | Why |
 |------|-----|
 | **Python 3.8+** | Runtime |
-| **Tor** | Must be running on ports 9050 (SOCKS) and 9051 (Control) |
+| **Tor** | Must be running — standalone Tor uses ports 9050/9051; Tor Browser uses 9150/9151 |
 | **pip + venv** | Package management |
 
-> **Install Tor**: <https://www.torproject.org/download/> — then start it and confirm ports 9050/9051 are listening.
+> **Install Tor**: <https://www.torproject.org/download/>
+>
+> **Windows shortcut**: Just launch Tor Browser, then edit `core/config.py` and set `TOR_PROXY_PORT=9150` and `TOR_CONTROL_PORT=9151`.
 
 ---
 
@@ -152,7 +154,7 @@ python scripts/maintenance.py --reset-failures
 
 | Problem | Solution |
 |---------|----------|
-| `Tor service is not available` | Start Tor: `tor --ControlPort 9051` or use the Tor Browser |
+| `Tor service is not available` | Start Tor: `tor --ControlPort 9051` (standalone) or launch Tor Browser and set `TOR_CONTROL_PORT=9151` in `core/config.py` |
 | `playwright not installed` | Run `playwright install chromium` |
 | `No active seeds in database` | Run `python scripts/url_populator.py` first |
 | `No search keywords found` | Run `python scripts/keyword_manager.py --add "something"` |

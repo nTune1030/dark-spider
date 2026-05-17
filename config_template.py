@@ -16,9 +16,10 @@ import string
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 # ── Tor ──────────────────────────────────────────────────────────────────────
-TOR_PROXY      = "socks5h://127.0.0.1:9050"
-TOR_PROXY_HOST = "127.0.0.1"
-TOR_PROXY_PORT = 9050
+TOR_PROXY       = "socks5h://127.0.0.1:9050"
+TOR_PROXY_HOST  = "127.0.0.1"
+TOR_PROXY_PORT  = 9050
+TOR_CONTROL_PORT = 9051    # Standalone Tor: 9051 | Tor Browser: 9151
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 DB_PATH       = os.path.join(PROJECT_ROOT, "dark_spider.db")

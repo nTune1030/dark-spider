@@ -54,10 +54,12 @@ A multithreaded, recursive spider for monitoring dark web `.onion` sites with ke
 | Requirement | Details |
 |-------------|---------|
 | **Python 3.8+** | Required for the runtime |
-| **Tor Service** | Must be installed and running |
-| | Port **9050** — SOCKS Proxy (for HTTP connections) |
-| | Port **9051** — Control Port (for identity rotation and health checks) |
+| **Tor** | Must be installed and running |
+| | **Standalone Tor**: Port 9050 (SOCKS) + 9051 (Control) |
+| | **Tor Browser**: Port 9150 (SOCKS) + 9151 (Control) — set `TOR_PROXY_PORT=9150` and `TOR_CONTROL_PORT=9151` in `core/config.py` |
 | **Chromium** | Installed via `playwright install chromium` for JS rendering fallback |
+
+> **Windows users**: The easiest way is to launch Tor Browser, then edit `core/config.py` to set `TOR_PROXY_PORT=9150` and `TOR_CONTROL_PORT=9151`.
 
 ---
 
@@ -226,7 +228,8 @@ cp config_template.py core/config.py
 | `JS_FALLBACK_BODY_THRESHOLD` | 512 | Body text length (bytes) to trigger Playwright re-render |
 | `TOR_PROXY` | `socks5h://127.0.0.1:9050` | SOCKS proxy URL |
 | `TOR_PROXY_HOST` | `127.0.0.1` | Tor proxy host |
-| `TOR_PROXY_PORT` | `9050` | Tor SOCKS port |
+| `TOR_PROXY_PORT` | `9050` | Tor SOCKS port (Tor Browser: `9150`) |
+| `TOR_CONTROL_PORT` | `9051` | Tor control port (Tor Browser: `9151`) |
 | `SEED_SOURCES` | 3 directories | Known directory mirrors for seeding |
 | `ONION_V3_REGEX` | `r"(?:https?://)?([a-z2-7]{56}\.onion)"` | Regex for V3 onion address extraction |
 
