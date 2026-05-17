@@ -2,7 +2,7 @@ r"""
 Automated runner for the Dark Web Spider.
 
 Handles the full scan lifecycle:
-  1. Verifies the Tor service is running (starts it if possible)
+  1. Verifies the Tor service is running (must be started manually first)
   2. Rotates to a fresh Tor identity for a clean exit node
   3. Runs one complete monitoring cycle via PersistentDarkWebMonitor
 

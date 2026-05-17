@@ -154,7 +154,7 @@ python scripts/maintenance.py --reset-failures
 
 | Problem | Solution |
 |---------|----------|
-| `Tor service is not available` | Start Tor: `tor --ControlPort 9051` (standalone) or launch Tor Browser and set `TOR_CONTROL_PORT=9151` in `core/config.py` |
+| `Tor service is not available` | Start Tor manually first: `tor --ControlPort 9051` (standalone) or launch Tor Browser and set `TOR_CONTROL_PORT=9151` + `TOR_PROXY_PORT=9150` in `core/config.py` |
 | `playwright not installed` | Run `playwright install chromium` |
 | `No active seeds in database` | Run `python scripts/url_populator.py` first |
 | `No search keywords found` | Run `python scripts/keyword_manager.py --add "something"` |

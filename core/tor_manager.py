@@ -1,7 +1,5 @@
-import subprocess
 import time
 import logging
-import shutil
 from typing import Optional
 from stem.control import Controller
 from stem import Signal, SocketError
@@ -31,74 +29,38 @@ def _probe_control_port(port: int) -> bool:
 
 
 def start_tor_service() -> bool:
-    """Check if Tor is running on the control port; start it if not.
+    """Check if Tor is running on a known control port.
 
     Probes the control port(s) defined in ``config.TOR_CONTROL_PORT`` and the
-    common Tor Browser port (9151).  If none respond, looks for the ``tor``
-    executable in PATH and launches it as a background process, then waits up
-    to 60 seconds for bootstrapping.
+    common Tor Browser port (9151).  Returns True immediately if a responsive
+    control port is found, False otherwise.
+
+    .. note::
+        Tor must be started **manually** before running the spider.
+        On Linux/macOS, use ``tor --ControlPort 9051``.
+        On Windows, launch the Tor Browser (ports 9150/9151) and set
+        ``TOR_PROXY_PORT=9150`` and ``TOR_CONTROL_PORT=9151`` in
+        ``core/config.py``.
 
     Returns:
-        True if Tor is running (or was started successfully), False otherwise.
+        True if Tor is running, False otherwise.
     """
     # Build the list of ports to try: configured port first, then alternates
     configured = config.TOR_CONTROL_PORT
     ports_to_try = [configured] + [p for p in _CONTROL_PORT_PROBES if p != configured]
 
-    # ── Step 1: Check if Tor is already running ────────────────────────────
     for port in ports_to_try:
         if _probe_control_port(port):
-            logging.info("[*] Tor is already running on ControlPort %d.", port)
+            logging.info("[*] Tor is running on ControlPort %d.", port)
             return True
 
-    logging.info("[!] Tor not detected on ControlPort %d (or fallback %d). Attempting to start service...",
-                configured, ports_to_try[-1] if len(ports_to_try) > 1 else configured)
-
-    # ── Step 2: Try to start Tor from PATH ─────────────────────────────────
-    tor_path = shutil.which("tor")
-    if not tor_path:
-        logging.error(
-            "[!] 'tor' executable not found in PATH.\n"
-            "    On Windows, the easiest option is to start Tor Browser and set\n"
-            "    TOR_CONTROL_PORT=9151 and TOR_PROXY_PORT=9150 in core/config.py.\n"
-            "    On Linux/macOS, install the standalone Tor package."
-        )
-        return False
-
-    try:
-        # Start Tor as a background process
-        subprocess.Popen([tor_path, "--ControlPort", str(configured)],
-                         stdout=subprocess.DEVNULL,
-                         stderr=subprocess.STDOUT)
-
-        # Give it time to initialize and bootstrap
-        controller = None
-        for i in range(30):  # Wait up to 60 seconds
-            time.sleep(2)
-            try:
-                controller = Controller.from_port(port=str(configured))  # type: ignore[arg-type]
-                controller.authenticate()
-
-                # Check bootstrap status
-                bootstrap_status = controller.get_info("status/bootstrap-phase")
-                if "TAG=done" in bootstrap_status:
-                    logging.info("[+] Tor service started and bootstrapped successfully.")
-                    controller.close()
-                    return True
-                else:
-                    summary = bootstrap_status.split(' SUMMARY=')[1] if 'SUMMARY=' in bootstrap_status else 'in progress'
-                    logging.info("...Tor bootstrapping: %s (%d/30)", summary, i + 1)
-                    controller.close()
-            except Exception:
-                pass  # Still initializing
-
-        logging.error("[!] Timed out waiting for Tor to bootstrap.")
-        if controller:
-            controller.close()
-        return False
-    except Exception as e:
-        logging.error("[!] Failed to start Tor: %s", e)
-        return False
+    logging.error(
+        "[!] Tor is not running. Please start Tor first:\n"
+        "    Linux/macOS:  tor --ControlPort 9051\n"
+        "    Windows:     Launch Tor Browser, then set TOR_CONTROL_PORT=9151\n"
+        "                 and TOR_PROXY_PORT=9150 in core/config.py"
+    )
+    return False
 
 
 def rotate_identity() -> bool:

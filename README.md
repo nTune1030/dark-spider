@@ -86,6 +86,9 @@ cp config_template.py core/config.py
 # Edit core/config.py with your local Tor settings
 
 # 6. Ensure Tor is running
+#    Linux/macOS:  tor --ControlPort 9051
+#    Windows:      Launch Tor Browser (uses ports 9150/9151 by default)
+#                  Then set TOR_PROXY_PORT=9150 and TOR_CONTROL_PORT=9151 in core/config.py
 ```
 
 <details>
