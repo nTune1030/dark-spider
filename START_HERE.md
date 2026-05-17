@@ -21,7 +21,7 @@ Get from zero to your first dark web scan in under 5 minutes.
 ## Step 1 — Clone & Install
 
 ```bash
-git clone https://github.com/ntune1030/darkweb_info_seek.git
+git clone https://github.com/nTune1030/darkweb_info_seek.git
 cd darkweb_info_seek
 
 # Create virtual environment
