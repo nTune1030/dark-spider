@@ -67,7 +67,7 @@ A multithreaded, recursive spider for monitoring dark web `.onion` sites with ke
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/nTune1030/darkweb_info_seek.git
+git clone https://github.com/nTune1030/dark-spider.git
 cd darkweb_info_seek
 
 # 2. Create and activate a virtual environment
