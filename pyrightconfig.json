@@ -1,0 +1,18 @@
+{
+  "include": [
+    "auto_spider.py",
+    "spider.py",
+    "verify_crawling.py",
+    "core",
+    "scripts",
+    "tests"
+  ],
+  "exclude": [
+    "**/__pycache__"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "warning",
+  "venvPath": ".",
+  "venv": ".venv"
+}

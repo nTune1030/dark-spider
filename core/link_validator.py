@@ -3,8 +3,10 @@ import re
 import logging
 from dataclasses import dataclass
 from typing import List
+from core import config
 
-# Configure logging for 24/7 server operation
+# Configure logging — outputs to both a log file and the console.
+# Note: basicConfig only takes effect once; spider.py may configure it first.
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -40,12 +42,12 @@ class OnionValidator:
     responses to determine if a site is active, seized, or dead.
     """
     
-    def __init__(self, proxy_url: str = "socks5h://127.0.0.1:9050"):
+    def __init__(self, proxy_url: str = config.TOR_PROXY):
         """
         Initialize the OnionValidator with a Tor proxy.
         
         Args:
-            proxy_url (str): The SOCKS5 proxy URL for Tor. Defaults to "socks5h://127.0.0.1:9050".
+            proxy_url (str): The SOCKS5 proxy URL for Tor. Defaults to config.TOR_PROXY.
         """
         self.session = requests.Session()
         self.session.proxies = {
@@ -110,11 +112,11 @@ class OnionValidator:
         site_data = OnionSite(url=url)
 
         if not self._is_valid_syntax(url):
-            logging.warning(f"Invalid syntax: {url}")
+            logging.warning("Invalid syntax: %s", url)
             return site_data
 
         try:
-            logging.info(f"Probing: {url}")
+            logging.info("Probing: %s", url)
             
             # TOR LATENCY WARNING:
             # We allow a 45-second timeout. Dark web servers are slow.
@@ -126,7 +128,7 @@ class OnionValidator:
 
             if response.status_code == 200:
                 if self._check_for_seizure(response.text):
-                    logging.warning(f"Site Seized: {url}")
+                    logging.warning("Site Seized: %s", url)
                     site_data.title = "[SEIZED]"
                 else:
                     site_data.is_active = True
@@ -136,16 +138,16 @@ class OnionValidator:
                             site_data.title = response.text.split("<title>")[1].split("</title>")[0]
                         except IndexError:
                             site_data.title = "No Title"
-                    logging.info(f"Success: {url} ({site_data.response_time:.2f}s)")
+                    logging.info("Success: %s (%.2fs)", url, site_data.response_time)
             else:
-                logging.warning(f"Dead Link ({response.status_code}): {url}")
+                logging.warning("Dead Link (%d): %s", response.status_code, url)
 
         except requests.exceptions.Timeout:
-            logging.error(f"Timeout: {url}")
+            logging.error("Timeout: %s", url)
         except requests.exceptions.ConnectionError:
-            logging.error(f"Connection Failed: {url}")
+            logging.error("Connection Failed: %s", url)
         except Exception as e:
-            logging.error(f"Error checking {url}: {e}")
+            logging.error("Error checking %s: %s", url, e)
 
         return site_data
 

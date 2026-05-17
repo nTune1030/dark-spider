@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "darkweb-info-seek"
+version = "0.1.0"
+description = "A multithreaded, recursive dark web spider for keyword and regex monitoring"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+    "Intended Audience :: Information Technology",
+]
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "playwright>=1.40",
+    "playwright-stealth>=2.0",
+    "PySocks>=1.7",
+    "requests>=2.31",
+    "stem>=1.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-mock>=3.10",
+]
+
+[project.scripts]
+darkweb-spider   = "auto_spider:main"
+darkweb-keywords  = "scripts.keyword_manager:main"
+darkweb-report    = "scripts.report_generator:generate_report"
+darkweb-monitor   = "scripts.live_monitor:main"
+darkweb-maintain  = "scripts.maintenance:main"
+darkweb-seed      = "scripts.url_populator:main"
+
+[tool.setuptools.packages.find]
+include = ["core*", "scripts*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

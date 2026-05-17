@@ -1,15 +1,56 @@
-.venv
-onion_validator.log
-spider.log
-*.log
-strategy.ipynb
-challenges.ipynb
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Python
 __pycache__/
 *.pyc
-goals.ipynb
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.idea/
+.vs/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+onion_validator.log
+spider.log
+
+# Database
 *.db
-quarantine
-temp_code.py
+dark_spider.db
+test_spider.db
+test_regex.db
+
+# Sensitive / Downloaded Data
+quarantine/
+dark_web_report.html
+
+# Configuration (contains custom headers/settings)
+core/config.py
 config.py
+
+# Downloaded / Scraped HTML
+*.htm
+*.html
+
+# Temporary / Scratch
+temp_code.py
 tor_quick_check.py
 *.ipynb
+!scratch_auto.ipynb
+strategy.ipynb
+challenges.ipynb
+goals.ipynb
+
+# OS files
+.DS_Store
+Thumbs.db
