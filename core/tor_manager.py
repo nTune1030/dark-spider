@@ -21,7 +21,7 @@ _CONTROL_PORT_PROBES = [9051, 9151]
 def _probe_control_port(port: int) -> bool:
     """Return True if we can authenticate on the given control port."""
     try:
-        with Controller.from_port(port=str(port)) as controller:  # type: ignore[arg-type]
+        with Controller.from_port(port=port) as controller:  # type: ignore[arg-type]
             controller.authenticate()
         return True
     except Exception:
@@ -86,7 +86,7 @@ def rotate_identity() -> bool:
 
         for port in ports_to_try:
             try:
-                with Controller.from_port(port=str(port)) as controller:  # type: ignore[arg-type]
+                with Controller.from_port(port=port) as controller:  # type: ignore[arg-type]
                     controller.authenticate()
                     controller.signal('NEWNYM')  # Use string instead of Signal.NEWNYM to avoid IDE false-positive errors
                     logging.info("[*] Signal NEWNYM sent via ControlPort %d. Tor is switching identity...", port)
